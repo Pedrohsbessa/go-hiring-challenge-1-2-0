@@ -1,6 +1,13 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"errors"
+
+	"github.com/jackc/pgx/v5/pgconn"
+	"gorm.io/gorm"
+)
+
+var ErrCategoryCodeAlreadyExists = errors.New("category code already exists")
 
 type CategoriesRepository struct {
 	db *gorm.DB
@@ -21,6 +28,11 @@ func (r *CategoriesRepository) GetAllCategories() ([]Category, error) {
 
 func (r *CategoriesRepository) CreateCategory(category Category) (*Category, error) {
 	if err := r.db.Create(&category).Error; err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, ErrCategoryCodeAlreadyExists
+		}
+
 		return nil, err
 	}
 

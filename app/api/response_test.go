@@ -79,3 +79,14 @@ func TestErrorResponseEncodeErrorPath(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, writer.code)
 	})
 }
+
+func TestCreatedResponse(t *testing.T) {
+	t.Run("succesful http201 json response", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		CreatedResponse(recorder, map[string]string{"status": "created"})
+
+		assert.Equal(t, http.StatusCreated, recorder.Code)
+		assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
+		assert.JSONEq(t, `{"status":"created"}`, recorder.Body.String())
+	})
+}

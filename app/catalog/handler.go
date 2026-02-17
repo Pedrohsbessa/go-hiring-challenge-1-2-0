@@ -33,12 +33,14 @@ type ProductReader interface {
 }
 
 type CatalogHandler struct {
-	repo ProductReader
+	repo           ProductReader
+	detailsService *detailsService
 }
 
 func NewCatalogHandler(r ProductReader) *CatalogHandler {
 	return &CatalogHandler{
-		repo: r,
+		repo:           r,
+		detailsService: newDetailsService(),
 	}
 }
 
@@ -120,29 +122,7 @@ func (h *CatalogHandler) HandleGetByCode(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	variants := make([]ProductVariant, len(product.Variants))
-	for i, variant := range product.Variants {
-		price := product.Price
-		if variant.Price != nil {
-			price = *variant.Price
-		}
-
-		variants[i] = ProductVariant{
-			Name:  variant.Name,
-			SKU:   variant.SKU,
-			Price: price.InexactFloat64(),
-		}
-	}
-
-	api.OKResponse(w, ProductDetailsResponse{
-		Code:  product.Code,
-		Price: product.Price.InexactFloat64(),
-		Category: Category{
-			Code: product.Category.Code,
-			Name: product.Category.Name,
-		},
-		Variants: variants,
-	})
+	api.OKResponse(w, h.detailsService.BuildProductDetails(product))
 }
 
 func parseOffset(raw string) int {

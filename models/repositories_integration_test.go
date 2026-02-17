@@ -78,6 +78,7 @@ func TestCategoriesRepositoryCreateAndList(t *testing.T) {
 
 	_, err = repo.CreateCategory(Category{Code: "BAGS", Name: "Bags Duplicate"})
 	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrCategoryCodeAlreadyExists))
 }
 
 func TestCategoriesRepositoryErrorBranches(t *testing.T) {

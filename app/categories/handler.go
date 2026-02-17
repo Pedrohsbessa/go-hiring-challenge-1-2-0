@@ -2,6 +2,7 @@ package categories
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -67,7 +68,7 @@ func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 
 	created, err := h.repo.CreateCategory(models.Category{Code: req.Code, Name: req.Name})
 	if err != nil {
-		if strings.Contains(strings.ToLower(err.Error()), "duplicate") {
+		if errors.Is(err, models.ErrCategoryCodeAlreadyExists) {
 			api.ErrorResponse(w, http.StatusConflict, "category code already exists")
 			return
 		}
@@ -76,5 +77,5 @@ func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.OKResponse(w, CategoryResponse{Code: created.Code, Name: created.Name})
+	api.CreatedResponse(w, CategoryResponse{Code: created.Code, Name: created.Name})
 }

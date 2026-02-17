@@ -83,7 +83,7 @@ func TestHandlePostCategorySuccess(t *testing.T) {
 
 	handler.HandlePost(res, req)
 
-	assert.Equal(t, http.StatusOK, res.Code)
+	assert.Equal(t, http.StatusCreated, res.Code)
 	assert.NotNil(t, mock.capturedCategory)
 	assert.Equal(t, "BAGS", mock.capturedCategory.Code)
 	assert.Equal(t, "Bags", mock.capturedCategory.Name)
@@ -120,7 +120,7 @@ func TestHandlePostCategoryInvalidJSON(t *testing.T) {
 func TestHandlePostCategoryConflict(t *testing.T) {
 	t.Parallel()
 
-	handler := NewHandler(&categoriesRepoMock{createErr: errors.New("duplicate key value violates unique constraint")})
+	handler := NewHandler(&categoriesRepoMock{createErr: models.ErrCategoryCodeAlreadyExists})
 
 	body := []byte(`{"code":"BAGS","name":"Bags"}`)
 	req := httptest.NewRequest(http.MethodPost, "/categories", bytes.NewBuffer(body))
