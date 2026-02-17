@@ -11,32 +11,38 @@ import (
 	"gorm.io/gorm"
 )
 
+// Response represents the catalog listing payload.
 type Response struct {
 	Products []Product `json:"products"`
 	Total    int64     `json:"total"`
 }
 
+// Product represents a single product in the catalog response.
 type Product struct {
 	Code     string   `json:"code"`
 	Price    float64  `json:"price"`
 	Category Category `json:"category"`
 }
 
+// Category represents category data in catalog responses.
 type Category struct {
 	Code string `json:"code"`
 	Name string `json:"name"`
 }
 
+// ProductReader defines read operations consumed by catalog handlers.
 type ProductReader interface {
 	ListProducts(filter models.ProductCatalogFilter) ([]models.Product, int64, error)
 	GetProductByCode(code string) (*models.Product, error)
 }
 
+// CatalogHandler exposes HTTP handlers for catalog operations.
 type CatalogHandler struct {
 	repo           ProductReader
 	detailsService *detailsService
 }
 
+// NewCatalogHandler creates a new CatalogHandler.
 func NewCatalogHandler(r ProductReader) *CatalogHandler {
 	return &CatalogHandler{
 		repo:           r,
@@ -44,6 +50,7 @@ func NewCatalogHandler(r ProductReader) *CatalogHandler {
 	}
 }
 
+// HandleGet returns paginated catalog products with optional filters.
 func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
@@ -91,6 +98,7 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	api.OKResponse(w, response)
 }
 
+// ProductDetailsResponse represents product details including variants.
 type ProductDetailsResponse struct {
 	Code     string           `json:"code"`
 	Price    float64          `json:"price"`
@@ -98,12 +106,14 @@ type ProductDetailsResponse struct {
 	Variants []ProductVariant `json:"variants"`
 }
 
+// ProductVariant represents a variant in product details responses.
 type ProductVariant struct {
 	Name  string  `json:"name"`
 	SKU   string  `json:"sku"`
 	Price float64 `json:"price"`
 }
 
+// HandleGetByCode returns detailed product data by product code.
 func (h *CatalogHandler) HandleGetByCode(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
 	if code == "" {

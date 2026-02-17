@@ -10,28 +10,34 @@ import (
 	"github.com/mytheresa/go-hiring-challenge/models"
 )
 
+// CategoryReaderWriter defines category operations consumed by the handler.
 type CategoryReaderWriter interface {
 	GetAllCategories() ([]models.Category, error)
 	CreateCategory(category models.Category) (*models.Category, error)
 }
 
+// Handler exposes HTTP handlers for category endpoints.
 type Handler struct {
 	repo CategoryReaderWriter
 }
 
+// NewHandler creates a new category handler.
 func NewHandler(repo CategoryReaderWriter) *Handler {
 	return &Handler{repo: repo}
 }
 
+// CategoryResponse represents category data returned by API responses.
 type CategoryResponse struct {
 	Code string `json:"code"`
 	Name string `json:"name"`
 }
 
+// ListResponse contains category list payload.
 type ListResponse struct {
 	Categories []CategoryResponse `json:"categories"`
 }
 
+// HandleGet returns all categories.
 func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	categories, err := h.repo.GetAllCategories()
 	if err != nil {
@@ -47,11 +53,13 @@ func (h *Handler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	api.OKResponse(w, ListResponse{Categories: response})
 }
 
+// CreateCategoryRequest represents category creation payload.
 type CreateCategoryRequest struct {
 	Code string `json:"code"`
 	Name string `json:"name"`
 }
 
+// HandlePost validates and creates a new category.
 func (h *Handler) HandlePost(w http.ResponseWriter, r *http.Request) {
 	var req CreateCategoryRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

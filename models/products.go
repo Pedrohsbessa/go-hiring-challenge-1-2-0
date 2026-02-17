@@ -4,6 +4,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Product represents a product stored in the catalog.
 type Product struct {
 	ID         uint            `gorm:"primaryKey"`
 	Code       string          `gorm:"uniqueIndex;not null"`
@@ -13,6 +14,7 @@ type Product struct {
 	Variants   []Variant       `gorm:"foreignKey:ProductID"`
 }
 
+// TableName returns the database table name for Product.
 func (p *Product) TableName() string {
 	return "products"
 }
