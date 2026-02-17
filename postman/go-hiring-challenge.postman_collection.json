@@ -1,0 +1,145 @@
+{
+    "info": {
+        "name": "Go Hiring Challenge API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": "Collection for catalog and categories endpoints"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8484"
+        },
+        {
+            "key": "productCode",
+            "value": "PROD001"
+        },
+        {
+            "key": "newCategoryCode",
+            "value": "BAGS"
+        },
+        {
+            "key": "newCategoryName",
+            "value": "Bags"
+        }
+    ],
+    "item": [
+        {
+            "name": "Catalog",
+            "item": [
+                {
+                    "name": "Get Catalog (default)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/catalog",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "catalog"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Catalog (filters + pagination)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/catalog?offset=0&limit=5&category=Shoes&price_lt=20",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "catalog"
+                            ],
+                            "query": [
+                                {
+                                    "key": "offset",
+                                    "value": "0"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "5"
+                                },
+                                {
+                                    "key": "category",
+                                    "value": "Shoes"
+                                },
+                                {
+                                    "key": "price_lt",
+                                    "value": "20"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Product Details by Code",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/catalog/{{productCode}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "catalog",
+                                "{{productCode}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Categories",
+            "item": [
+                {
+                    "name": "Get Categories",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/categories",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "categories"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Create Category",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"code\": \"{{newCategoryCode}}\",\n  \"name\": \"{{newCategoryName}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/categories",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "categories"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
