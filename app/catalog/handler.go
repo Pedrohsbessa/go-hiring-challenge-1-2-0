@@ -1,12 +1,14 @@
 package catalog
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/mytheresa/go-hiring-challenge/app/api"
 	"github.com/mytheresa/go-hiring-challenge/models"
 	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
 
 type Response struct {
@@ -27,6 +29,7 @@ type Category struct {
 
 type ProductReader interface {
 	ListProducts(filter models.ProductCatalogFilter) ([]models.Product, int64, error)
+	GetProductByCode(code string) (*models.Product, error)
 }
 
 type CatalogHandler struct {
@@ -84,6 +87,62 @@ func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	api.OKResponse(w, response)
+}
+
+type ProductDetailsResponse struct {
+	Code     string           `json:"code"`
+	Price    float64          `json:"price"`
+	Category Category         `json:"category"`
+	Variants []ProductVariant `json:"variants"`
+}
+
+type ProductVariant struct {
+	Name  string  `json:"name"`
+	SKU   string  `json:"sku"`
+	Price float64 `json:"price"`
+}
+
+func (h *CatalogHandler) HandleGetByCode(w http.ResponseWriter, r *http.Request) {
+	code := r.PathValue("code")
+	if code == "" {
+		api.ErrorResponse(w, http.StatusBadRequest, "missing product code")
+		return
+	}
+
+	product, err := h.repo.GetProductByCode(code)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			api.ErrorResponse(w, http.StatusNotFound, "product not found")
+			return
+		}
+
+		api.ErrorResponse(w, http.StatusInternalServerError, "failed to fetch product details")
+		return
+	}
+
+	variants := make([]ProductVariant, len(product.Variants))
+	for i, variant := range product.Variants {
+		price := product.Price
+		if variant.Price != nil {
+			price = *variant.Price
+		}
+
+		variants[i] = ProductVariant{
+			Name:  variant.Name,
+			SKU:   variant.SKU,
+			Price: price.InexactFloat64(),
+		}
+	}
+
+	api.OKResponse(w, ProductDetailsResponse{
+		Code:  product.Code,
+		Price: product.Price.InexactFloat64(),
+		Category: Category{
+			Code: product.Category.Code,
+			Name: product.Category.Name,
+		},
+		Variants: variants,
+	})
 }
 
 func parseOffset(raw string) int {

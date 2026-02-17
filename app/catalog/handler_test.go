@@ -17,11 +17,20 @@ type productsReaderMock struct {
 	total         int64
 	err           error
 	capturedQuery models.ProductCatalogFilter
+	productByCode *models.Product
 }
 
 func (m *productsReaderMock) ListProducts(filter models.ProductCatalogFilter) ([]models.Product, int64, error) {
 	m.capturedQuery = filter
 	return m.products, m.total, m.err
+}
+
+func (m *productsReaderMock) GetProductByCode(code string) (*models.Product, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	return m.productByCode, nil
 }
 
 func TestCatalogHandleGetDefaults(t *testing.T) {
