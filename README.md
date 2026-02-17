@@ -30,4 +30,17 @@ This repository contains a Go application for managing products and their prices
   - `make run`: Will start the application.
   - `make docker-down`: Will stop the docker containers.
 
+## Coverage Report
+
+- Generate coverage for the full project:
+  - `go test ./... -coverprofile=coverage.out`
+  - `go tool cover -func coverage.out`
+
+- Generate coverage for application/domain scope (`app/...` and `models/...`):
+  - `go test ./app/... ./models/... -coverprofile=coverage-app-models.out`
+  - `go tool cover -func coverage-app-models.out`
+
+- Optional HTML report:
+  - `go tool cover -html=coverage-app-models.out -o coverage.html`
+
 Follow up for the assignemnt here: [ASSIGNMENT.md](ASSIGNMENT.md)
