@@ -1,56 +1,166 @@
 package catalog
 
 import (
-	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
 
+	"github.com/mytheresa/go-hiring-challenge/app/api"
 	"github.com/mytheresa/go-hiring-challenge/models"
+	"github.com/shopspring/decimal"
+	"gorm.io/gorm"
 )
 
+// Response represents the catalog listing payload.
 type Response struct {
 	Products []Product `json:"products"`
+	Total    int64     `json:"total"`
 }
 
+// Product represents a single product in the catalog response.
 type Product struct {
-	Code  string  `json:"code"`
-	Price float64 `json:"price"`
+	Code     string   `json:"code"`
+	Price    float64  `json:"price"`
+	Category Category `json:"category"`
 }
 
+// Category represents category data in catalog responses.
+type Category struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+// ProductReader defines read operations consumed by catalog handlers.
+type ProductReader interface {
+	ListProducts(filter models.ProductCatalogFilter) ([]models.Product, int64, error)
+	GetProductByCode(code string) (*models.Product, error)
+}
+
+// CatalogHandler exposes HTTP handlers for catalog operations.
 type CatalogHandler struct {
-	repo *models.ProductsRepository
+	repo           ProductReader
+	detailsService *detailsService
 }
 
-func NewCatalogHandler(r *models.ProductsRepository) *CatalogHandler {
+// NewCatalogHandler creates a new CatalogHandler.
+func NewCatalogHandler(r ProductReader) *CatalogHandler {
 	return &CatalogHandler{
-		repo: r,
+		repo:           r,
+		detailsService: newDetailsService(),
 	}
 }
 
+// HandleGet returns paginated catalog products with optional filters.
 func (h *CatalogHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
-	res, err := h.repo.GetAllProducts()
+	query := r.URL.Query()
+
+	offset := parseOffset(query.Get("offset"))
+	limit := parseLimit(query.Get("limit"))
+
+	var priceLessThan *decimal.Decimal
+	if rawPriceLt := query.Get("price_lt"); rawPriceLt != "" {
+		parsed, err := decimal.NewFromString(rawPriceLt)
+		if err != nil {
+			api.ErrorResponse(w, http.StatusBadRequest, "invalid query parameter: price_lt")
+			return
+		}
+		priceLessThan = &parsed
+	}
+
+	res, total, err := h.repo.ListProducts(models.ProductCatalogFilter{
+		Offset:        offset,
+		Limit:         limit,
+		Category:      query.Get("category"),
+		PriceLessThan: priceLessThan,
+	})
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		api.ErrorResponse(w, http.StatusInternalServerError, "failed to fetch products")
 		return
 	}
 
-	// Map response
 	products := make([]Product, len(res))
 	for i, p := range res {
 		products[i] = Product{
 			Code:  p.Code,
 			Price: p.Price.InexactFloat64(),
+			Category: Category{
+				Code: p.Category.Code,
+				Name: p.Category.Name,
+			},
 		}
 	}
 
-	// Return the products as a JSON response
-	w.Header().Set("Content-Type", "application/json")
-
 	response := Response{
 		Products: products,
+		Total:    total,
 	}
 
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	api.OKResponse(w, response)
+}
+
+// ProductDetailsResponse represents product details including variants.
+type ProductDetailsResponse struct {
+	Code     string           `json:"code"`
+	Price    float64          `json:"price"`
+	Category Category         `json:"category"`
+	Variants []ProductVariant `json:"variants"`
+}
+
+// ProductVariant represents a variant in product details responses.
+type ProductVariant struct {
+	Name  string  `json:"name"`
+	SKU   string  `json:"sku"`
+	Price float64 `json:"price"`
+}
+
+// HandleGetByCode returns detailed product data by product code.
+func (h *CatalogHandler) HandleGetByCode(w http.ResponseWriter, r *http.Request) {
+	code := r.PathValue("code")
+	if code == "" {
+		api.ErrorResponse(w, http.StatusBadRequest, "missing product code")
 		return
 	}
+
+	product, err := h.repo.GetProductByCode(code)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			api.ErrorResponse(w, http.StatusNotFound, "product not found")
+			return
+		}
+
+		api.ErrorResponse(w, http.StatusInternalServerError, "failed to fetch product details")
+		return
+	}
+
+	api.OKResponse(w, h.detailsService.BuildProductDetails(product))
+}
+
+func parseOffset(raw string) int {
+	offset, err := strconv.Atoi(raw)
+	if err != nil || offset < 0 {
+		return 0
+	}
+
+	return offset
+}
+
+func parseLimit(raw string) int {
+	if raw == "" {
+		return 10
+	}
+
+	limit, err := strconv.Atoi(raw)
+	if err != nil {
+		return 10
+	}
+
+	if limit < 1 {
+		return 1
+	}
+
+	if limit > 100 {
+		return 100
+	}
+
+	return limit
 }
