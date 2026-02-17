@@ -1,12 +1,33 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type failingResponseWriter struct {
+	header http.Header
+	code   int
+}
+
+func (w *failingResponseWriter) Header() http.Header {
+	if w.header == nil {
+		w.header = make(http.Header)
+	}
+	return w.header
+}
+
+func (w *failingResponseWriter) WriteHeader(statusCode int) {
+	w.code = statusCode
+}
+
+func (w *failingResponseWriter) Write(p []byte) (int, error) {
+	return 0, errors.New("forced write error")
+}
 
 func TestOKResponse(t *testing.T) {
 
@@ -38,5 +59,23 @@ func TestErrorResponse(t *testing.T) {
 
 		expected := `{"error":"Some error occurred"}`
 		assert.JSONEq(t, expected, recorder.Body.String(), "Response body does not match expected")
+	})
+}
+
+func TestOKResponseEncodeErrorPath(t *testing.T) {
+	t.Run("encode error branch", func(t *testing.T) {
+		writer := &failingResponseWriter{}
+		OKResponse(writer, map[string]any{"invalid": func() {}})
+
+		assert.Equal(t, http.StatusInternalServerError, writer.code)
+	})
+}
+
+func TestErrorResponseEncodeErrorPath(t *testing.T) {
+	t.Run("encode error branch", func(t *testing.T) {
+		writer := &failingResponseWriter{}
+		ErrorResponse(writer, http.StatusBadRequest, "error")
+
+		assert.Equal(t, http.StatusInternalServerError, writer.code)
 	})
 }

@@ -90,6 +90,36 @@ func TestCatalogHandleGetFiltersAndPagination(t *testing.T) {
 	assert.True(t, decimal.RequireFromString("12.50").Equal(*mock.capturedQuery.PriceLessThan))
 }
 
+func TestCatalogHandleGetLimitAndOffsetEdgeCases(t *testing.T) {
+	t.Parallel()
+
+	t.Run("invalid values fallback to defaults", func(t *testing.T) {
+		mock := &productsReaderMock{}
+		handler := NewCatalogHandler(mock)
+		req := httptest.NewRequest(http.MethodGet, "/catalog?offset=abc&limit=abc", nil)
+		res := httptest.NewRecorder()
+
+		handler.HandleGet(res, req)
+
+		assert.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, 0, mock.capturedQuery.Offset)
+		assert.Equal(t, 10, mock.capturedQuery.Limit)
+	})
+
+	t.Run("negative offset and low limit are clamped", func(t *testing.T) {
+		mock := &productsReaderMock{}
+		handler := NewCatalogHandler(mock)
+		req := httptest.NewRequest(http.MethodGet, "/catalog?offset=-5&limit=0", nil)
+		res := httptest.NewRecorder()
+
+		handler.HandleGet(res, req)
+
+		assert.Equal(t, http.StatusOK, res.Code)
+		assert.Equal(t, 0, mock.capturedQuery.Offset)
+		assert.Equal(t, 1, mock.capturedQuery.Limit)
+	})
+}
+
 func TestCatalogHandleGetInvalidPriceLt(t *testing.T) {
 	t.Parallel()
 

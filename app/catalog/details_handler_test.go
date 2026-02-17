@@ -64,6 +64,19 @@ func TestCatalogHandleGetByCodeNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, res.Code)
 }
 
+func TestCatalogHandleGetByCodeMissingCode(t *testing.T) {
+	t.Parallel()
+
+	mock := &productsReaderMock{}
+	handler := NewCatalogHandler(mock)
+	req := httptest.NewRequest(http.MethodGet, "/catalog/", nil)
+	res := httptest.NewRecorder()
+
+	handler.HandleGetByCode(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+}
+
 func TestCatalogHandleGetByCodeRepositoryError(t *testing.T) {
 	t.Parallel()
 

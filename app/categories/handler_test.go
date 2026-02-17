@@ -59,6 +59,18 @@ func TestHandleGetCategoriesSuccess(t *testing.T) {
 	assert.Equal(t, "CLOTHING", payload.Categories[0].Code)
 }
 
+func TestHandleGetCategoriesError(t *testing.T) {
+	t.Parallel()
+
+	handler := NewHandler(&categoriesRepoMock{getErr: errors.New("db error")})
+	req := httptest.NewRequest(http.MethodGet, "/categories", nil)
+	res := httptest.NewRecorder()
+
+	handler.HandleGet(res, req)
+
+	assert.Equal(t, http.StatusInternalServerError, res.Code)
+}
+
 func TestHandlePostCategorySuccess(t *testing.T) {
 	t.Parallel()
 
@@ -91,6 +103,20 @@ func TestHandlePostCategoryValidationError(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.Code)
 }
 
+func TestHandlePostCategoryInvalidJSON(t *testing.T) {
+	t.Parallel()
+
+	handler := NewHandler(&categoriesRepoMock{})
+
+	body := []byte(`{"code":`) // malformed json
+	req := httptest.NewRequest(http.MethodPost, "/categories", bytes.NewBuffer(body))
+	res := httptest.NewRecorder()
+
+	handler.HandlePost(res, req)
+
+	assert.Equal(t, http.StatusBadRequest, res.Code)
+}
+
 func TestHandlePostCategoryConflict(t *testing.T) {
 	t.Parallel()
 
@@ -103,4 +129,18 @@ func TestHandlePostCategoryConflict(t *testing.T) {
 	handler.HandlePost(res, req)
 
 	assert.Equal(t, http.StatusConflict, res.Code)
+}
+
+func TestHandlePostCategoryRepositoryError(t *testing.T) {
+	t.Parallel()
+
+	handler := NewHandler(&categoriesRepoMock{createErr: errors.New("db unavailable")})
+
+	body := []byte(`{"code":"BAGS","name":"Bags"}`)
+	req := httptest.NewRequest(http.MethodPost, "/categories", bytes.NewBuffer(body))
+	res := httptest.NewRecorder()
+
+	handler.HandlePost(res, req)
+
+	assert.Equal(t, http.StatusInternalServerError, res.Code)
 }

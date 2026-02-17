@@ -29,7 +29,7 @@ func (r *ProductsRepository) ListProducts(filter ProductCatalogFilter) ([]Produc
 
 	if strings.TrimSpace(filter.Category) != "" {
 		category := strings.TrimSpace(filter.Category)
-		query = query.Joins("Category").Where("LOWER(categories.code) = LOWER(?) OR LOWER(categories.name) = LOWER(?)", category, category)
+		query = query.Joins("Category").Where("LOWER(\"Category\".code) = LOWER(?) OR LOWER(\"Category\".name) = LOWER(?)", category, category)
 	}
 
 	if filter.PriceLessThan != nil {
